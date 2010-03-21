@@ -1,12 +1,9 @@
-#include <linux/module.h>
-#include <linux/kernel.h>
-
 void (*old_handl_p)(void) = 0;
 void (*new_handl_p)(void) = 0;
 
 void hook(void)
 {
-  // Pointer to a pointer to a function
+  /* Pointer to the original handler */
   asm("jmp *%0" : : "m"(old_handl_p));
   return;
 }
@@ -16,14 +13,13 @@ int init_module(void)
   new_handl_p = &hook;
 
   asm("rdmsr\n\t"
-      : "=a"(old_handl_p)
-      : "c"(0x176)
-      : "%edx");
+      : "=a"(old_handl_p) /* EAX now has a pointer to the hook */
+      : "c"(0x176) /* Number of MSR register */
+      : "%edx"); /* RDMSR also changes the EDX register */
   
-  /*  asm("wrmsr\n\t"
-      : /* No output 
-      : "c"(0x176), "d"(0x0), "a"(new_handl_p));*/
-      
-  printk(KERN_INFO "%p\n", old_handl_p);
+  asm("wrmsr\n\t"
+      : /* No output */
+      : "c"(0x176), "d"(0x0), "a"(new_handl_p));
+  
   return 0;
 }

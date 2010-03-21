@@ -68,8 +68,9 @@
   not useful by themselves. When a breakpoint is reached, after executing it,
   the processor emits a \verb!#DB! exception, which is catched by the kernel
   handler in normal cases. But the rootkit changes the handler in Interrupt
-  Descriptor Table to its own (saving the previous). We will discuss the
-  techniques later.\\
+  Descriptor Table to its own (saving the previous).
+
+  \section{Interception techniques}
 
   Wait, is this the only way to control system internals? Actually, more
   methods were created through the time, but all them are based on modifying
@@ -108,6 +109,8 @@
   rootkit (and more for the machine owner).
   \end{itemize}
 
+
+  \subsection{Modifying IDT}
   There are some other ways, of course, but now we will concentrate on the
   ones listed above and try to perform these ``tricks''. So, the first in the
   list is interception of interrupts via IDT. Ok, let's begin.
@@ -132,5 +135,42 @@
       bits begin at bit 0 of the IDT entry, and the last 16 are at the end of
       the entry. Tricky, right? The following code can handle with this:
       \verbatiminput{idt.h}
+
+    \item Very good! Now that we have the entries, many things can be
+      done. But let's stop with IDT hooking and continue to the next method.
+  \end{itemize}
+
+  \subsection{SYSENTER/SYSCALL interception}
+  Well, this one is a juicy one! As I already told, beginning with Pentium II,
+  Intel processors implemented the new \verb!SYSENTER!/\verb!SYSEXIT!
+  instructions (and AMD used \verb!SYSCALL!/\verb!SYSRET!). They decreased the
+  overhead of switching from user mode and vice-versa (the interrupts are
+  slow). These instructions used special MSR registers to know where the
+  target procedure was located. There is one that is specially relevant to us:
+  \verb!SYSENTER_EIP_MSR!. Its contents are loaded to the EIP register
+  (basically a jump) at the end of \verb!SYSENTER! execution. Initially it
+  points to a kernel procedure, but we can change it to our procedure. How can
+  it be done?
+  \begin{itemize}
+    \item First, of course, we need a way to access the
+      \verb!SYSENTER_EIP_MSR! register. It's not accessed like the, let's say,
+      EAX register. There is a special instruction, \verb!RDMSR!, that does
+      it. The only requirement is that the number of MSR register should be
+      loaded into ECX (the number of \verb!SYSENTER_EIP_MSR! is 0x176). The
+      contents are stored in EDX and EAX registers (EDX is 0 on 32-bit
+      systems).
+      
+    \item Now we can put a new value to the register. This process is
+      basically an inverted version of the previous. We load the new value
+      into EDX:EAX (EDX is zero, EAX is the new procedure pointer), the MSR
+      register number into ECX, and perform the instruction \verb!WRMSR!.
+  
+    \item I thought that an example would be more helpful than a dry
+      description, so here is a sample kernel module for this task (the
+      includes were (duh) excluded). It's a kernel module because \verb!WRMSR!
+  can only be performed at ring 0:
+  \verbatiminput{msr.h}
+  \item Obviously, this module doesn't do anything special, it's more like a
+    ``proof-of-concept''. But the payload will come later.
   \end{itemize}
 \end{document}

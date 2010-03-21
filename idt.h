@@ -1,10 +1,10 @@
 typedef struct
 {
-  uint16_t offset_1;
-  uint16_t selector;
+  uint16_t offset_low;
+  uint16_t selector; /* Target segment selector */
   uint8_t  zero;
   uint8_t  type_attr;
-  uint16_t offset_2;
+  uint16_t offset_high;
 } idt_entry;
 
 idt_entry* get_idt_entry(dtr idtr, uint index)
