@@ -23,3 +23,10 @@ int init_module(void)
   
   return 0;
 }
+
+void cleanup_module(void)
+{
+  asm("wrmsr\n\t"
+      : /* No output */
+      : "c"(0x176), "d"(0x0), "a"(old_handl_p));
+}

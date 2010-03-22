@@ -68,7 +68,8 @@
   not useful by themselves. When a breakpoint is reached, after executing it,
   the processor emits a \verb!#DB! exception, which is catched by the kernel
   handler in normal cases. But the rootkit changes the handler in Interrupt
-  Descriptor Table to its own (saving the previous).
+  Descriptor Table to its own or either modifies the system handler (in this
+  case the IDT remains untouched).
 
   \section{Interception techniques}
 
@@ -118,6 +119,7 @@
     \item First of all, I am going to be as kernel version independent as I
       can. It means that I am going to use resources available in the
       processor rather that predefined macros or whatever.
+      
     \item OK, before we make any changes to IDT, we obviously need to know
       where exactly it resides. An assembly command \verb!SIDT! can help us
       with this, getting the IDTR register contents. In 32-bit systems, IDTR
@@ -166,11 +168,58 @@
       register number into ECX, and perform the instruction \verb!WRMSR!.
   
     \item I thought that an example would be more helpful than a dry
-      description, so here is a sample kernel module for this task (the
-      includes were (duh) excluded). It's a kernel module because \verb!WRMSR!
-  can only be performed at ring 0:
-  \verbatiminput{msr.h}
-  \item Obviously, this module doesn't do anything special, it's more like a
-    ``proof-of-concept''. But the payload will come later.
+      description, so here is a minimal sample kernel module for this task
+      (the includes were (duh) excluded). It's a kernel module because
+      \verb!WRMSR!  can only be performed at ring 0: \verbatiminput{msr.h}
+      
+    \item Obviously, this module doesn't do anything special, it's more like a
+      ``proof-of-concept''. But the payload will come later.
   \end{itemize}
+
+  \section{Designing a rootkit}
+  
+  Now we have the most popular methods of intercepting system internals, which
+  are also pretty easy to detect. Usually the check consists of retrieving the
+  system structures, registers etc. and comparing them to the original ones
+  found in an uncompressed kernel (or the System.map file). Can the results of
+  such a check be trusted? No! The rootkits now prefer to modify the system
+  handlers themselves instead, as it's more difficult to discover. For
+  example, let's see the method for debugging registers (it's simpler than
+  other methods), but in a new way.
+
+  \subsection{Modifying the original debug handler}
+  \begin{enumerate}
+    \item What happens when a breakpoint is reached? The 0x1 interrupt. Now we
+      need to see what procedure is called to handle that interrupt, so let's
+      see the IDT.
+
+    \item On my system, it reported the address 0xc125af80. This doesn't tell
+      a lot, right? To discover what it is, I used the System.map file. The
+      result was a function ``debug''. Now this is interesting! Let's see what
+      this function does in kernel sources. Actually, the debug entry is
+      located (kernel 2.6.33) in the \verb!arch/x86/kernel/entry_32.S! (was
+      tricky to find). And this is the code.
+      \verbatiminput{deb_entry.S}
+
+   Interesting! The ``\verb!call do_debug!'' seems to be the call to the
+   ``official'' debug handler. And if we change it with our own handler,
+   which then gives control to \verb!do_debug!? Lots of fun! The only
+   problem here is that we actually need to find this call and replace the
+   original address to our own handler.
+
+   \item And how do we find that call? As I suppose, this should be a near
+     absolute call. According to the documentation from Intel, the opcode for
+     this call is \verb!0xFF!. But for safety, let's also check the preceding
+     operation code. In my case, ``\verb!call do_debug!'' was preceded by
+     ``\verb!movl %esp, %eax!''. And because of my extreme laziness, instead
+     of checking the intel manuals, I decided to compile a sample program that
+     contained this instruction and see the hex codes. The result was
+     \verb!0x89E0!. So, to change the debug handler, we first need to find the
+     sequence \verb!0x89E0FF!, and the next 4 bytes will be the address to
+     \verb!do_debug!. But digging in the kernel is very hard for a human, so
+     let's define another function: \verbatiminput{search.h} \emph{WARNING:
+       It's not my best or fastest code, but considering that it will usually
+       be called only once, it's not critical. I hope.}
+  \end{enumerate}
+  
 \end{document}
