@@ -89,9 +89,9 @@
       system call number into EAX register before invoking interrupt). And
       guess what? The handler for that interrupt was stored in IDT too.
 
-    \item MSR stands for Model Specific Registers. As I already told, before
-      Pentium II, interrupts were used to make system calls. It's a simple
-      way, but unfortunately, slow. That's when \verb!SYSENTER/SYSCALL! and
+    \item MSR stands for Model Specific Registers. Before Pentium II,
+      interrupts were used to make system calls. It's a simple way, but
+      unfortunately, slow. That's when \verb!SYSENTER/SYSCALL! and
       \verb!SYSEXIT/SYSRET! (for Intel/AMD respectively) commands were
       introduced, providing a faster way to make system calls. Now the handler
       of the call was not in IDT, but in a set of MSR registers. They store
@@ -195,31 +195,37 @@
 
     \item On my system, it reported the address 0xc125af80. This doesn't tell
       a lot, right? To discover what it is, I used the System.map file. The
-      result was a function ``debug''. Now this is interesting! Let's see what
-      this function does in kernel sources. Actually, the debug entry is
-      located (kernel 2.6.33) in the \verb!arch/x86/kernel/entry_32.S! (was
-      tricky to find). And this is the code.
-      \verbatiminput{deb_entry.S}
+      result was a function ``\verb!debug!''. Now this is interesting! Let's
+      see what this function does in kernel sources. Actually, the debug entry
+      is located (kernel 2.6.33) in the \verb!arch/x86/kernel/entry_32.S! (was
+      tricky to find). And this is the code.  \verbatiminput{deb_entry.S}
 
-   Interesting! The ``\verb!call do_debug!'' seems to be the call to the
+   Good! The ``\verb!call do_debug!'' seems to be the call to the
    ``official'' debug handler. And if we change it with our own handler,
    which then gives control to \verb!do_debug!? Lots of fun! The only
    problem here is that we actually need to find this call and replace the
    original address to our own handler.
 
-   \item And how do we find that call? As I suppose, this should be a near
-     absolute call. According to the documentation from Intel, the opcode for
-     this call is \verb!0xFF!. But for safety, let's also check the preceding
-     operation code. In my case, ``\verb!call do_debug!'' was preceded by
-     ``\verb!movl %esp, %eax!''. And because of my extreme laziness, instead
-     of checking the intel manuals, I decided to compile a sample program that
-     contained this instruction and see the hex codes. The result was
-     \verb!0x89E0!. So, to change the debug handler, we first need to find the
-     sequence \verb!0x89E0FF!, and the next 4 bytes will be the address to
-     \verb!do_debug!. But digging in the kernel is very hard for a human, so
-     let's define another function: \verbatiminput{search.h} \emph{WARNING:
-       It's not my best or fastest code, but considering that it will usually
-       be called only once, it's not critical. I hope.}
+   \item Yes, in theory it's simple, but the practice is a bit more
+     complicated. It should be good to see part of disassembled listing of
+     ``\verb!debug!'':
+     \verbatiminput{debug.s} Interesting, right? But here is a problem. As the
+     hex code of ``\verb!call!'' in this case is \verb!0xe8!, it's a relative
+     near call. Obviously, it's not acceptable for the hooking function (the
+     addresses will be different), so first we need to calculate the absolute
+     offset of ``\verb!do_debug!''. Yes, and just for clarity: the 4-byte
+     value after ``\verb!0xe8! is a signed integer. The offset is added to the
+     address of the next instruction, in my case \verb!0xc125afd0!, and
+     (voilà!) we obtain the linear address of ``\verb!do_debug!''. But first,
+     we need to find this call. According to the objdump listing provided
+     above, the 4-byte pattern we are looking for is
+     \verb!0xd289e0e8!. Digging in the kernel is hard for a human, so let's
+     define another function.  \emph{Important: when we get a value from
+       memory and use it as an integer, it's inverted (because of the
+       endianness). So if we need to find code, we need to invert the pattern
+       again}: \verbatiminput{search.h} \emph{WARNING: It's not the best or
+       the fastest code, but considering that it will usually be called only
+       once, it's not critical}
   \end{enumerate}
   
 \end{document}
