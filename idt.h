@@ -1,11 +1,11 @@
 typedef struct
 {
   uint16_t offset_low;
-  uint16_t selector; /* Target segment selector */
-  uint8_t  zero;
-  uint8_t  type_attr;
+  uint32_t not_used; /* We are not going to use that */
   uint16_t offset_high;
-} idt_entry;
+} __attribute__((__packed__)) idt_entry;
+/* __packed__ is needed to avoid structure alignment, otherwise it will
+   not be suitable for use */
 
 idt_entry* get_idt_entry(dtr idtr, uint index)
 {

@@ -74,40 +74,43 @@
   \section{Interception techniques}
 
   Wait, is this the only way to control system internals? Actually, more
-  methods were created through the time, but all them are based on modifying
-  well-known system structures, the quantity of which is not so big. What
-  structures? Some of them are IDT, MSR, DR registers (as seen
+  methods were created through the time, but all of them are based on
+  modifying well-known system structures, the quantity of which is not so
+  big. What structures? Some of them are IDT, MSR, DR registers (as seen
   above), syscall tables... What are all these abbreviatures? They may look
-  scary at first sight, but the things are simpler. So what all those things do?
+  scary at first sight, but the things are simpler. So what all those things
+  do?
 
   \begin{itemize}
     \item IDT means Interrupt Descriptor Table. In simple words, it contains
       addresses of handlers for interrupts. As we have seen in the DR rootkit,
-      it may be very useful. There is also another detail.  Before Pentium II
+      it may be very useful. There is also another detail, before Pentium II
       was introduced, system calls (i.e. calls from user applications to
       kernel) were performed using the \verb!0x80!  interrupt (loading the
       system call number into EAX register before invoking interrupt). And
-      guess what? The handler for that interrupt was stored in IDT too.
+      guess what? The pointer to the handler for that interrupt was stored in
+      IDT too.
 
     \item MSR stands for Model Specific Registers. Before Pentium II,
       interrupts were used to make system calls. It's a simple way, but
-      unfortunately, slow. That's when \verb!SYSENTER/SYSCALL! and
+      unfortunately, slow. That's why \verb!SYSENTER/SYSCALL! and
       \verb!SYSEXIT/SYSRET! (for Intel/AMD respectively) commands were
-      introduced, providing a faster way to make system calls. Now the handler
-      of the call was not in IDT, but in a set of MSR registers. They store
-      the target instruction, stack segment pointer etc. But the most
-      interesting and useful for us is the \verb!IA_32_SYSENTER_EIP! which
-      stores the target instruction. Changing it to something else will
-      redirect all the system calls into the new procedure.
+      introduced, providing a faster way to make system calls. Now the pointer
+      to that handler of the call was not in IDT, but in a set of MSR
+      registers. They store the target instruction, stack segment pointer
+      etc. But the most interesting and useful for us is the
+      \verb!IA_32_SYSENTER_EIP! which stores the target instruction. Changing
+      it to something else will redirect all the system calls into the new
+      procedure.
 
     \item So what is the difference between the above two methods? Only the
       way to \emph{call} system procedures! Even if we examine the source of
-      \verb!ia32_sysenter_target! (there is where \verb!IA_32_SYSENTER_EIP!
-  points by default), we find
-  ``\verb!call *ia32_sys_call_table(,%rax,8)!''. This means that those
-  procedures are the same in both cases (it would be strange otherwise). And,
-  of course, modifying pointers in this table can be very funny for the
-  rootkit (and more for the machine owner).
+      \verb!system_call! and \verb!ia32_sysenter_target! (there is where
+      \verb!IA_32_SYSENTER_EIP!  points by default), in both we find
+      ``\verb!call *sys_call_table(,%eax,4)!''. This means that those
+      procedures are the same in both cases (otherwise, it would be
+      strange). And, of course, modifying pointers in this table can be very
+      funny for the rootkit (and more for the machine owner).
   \end{itemize}
 
 
@@ -227,5 +230,46 @@
        the fastest code, but considering that it will usually be called only
        once, it's not critical}
   \end{enumerate}
+  Well, this is a good technique, but I will not use it because of the
+  relatively easy way to access DR0-DR7 registers. Instead, I will use a
+  little bit more complicated, but more reliable (in terms of ease of
+  discovery) method of hijacking system calls directly in the
+  \verb!sys_call_table!.
+
+  \begin{itemize}
+  \item The responsible code, found both in \verb!system_call! and
+    \verb!ia32_sysenter_target! (what additionally proves that system calls
+    are located in that table), is \verb!call *sys_call_table(,%eax,4)!. This
+    is the disassembled fragment of \verb!ia32_sysenter_target!:
+    \verbatiminput{syscall_dis.S} A negative value?  It cannot be, since the
+    opcode \verb!0xff! always means an absolute offset. It's a mistake in
+    \verb!objdump!, so I sent a bug report. However, it's not that critical,
+    and we may continue.
+
+  \item Now the function ``\verb!search!'', defined above, can be used to
+    search the pattern \verb!0x00ff1485! (taken from the disassembly listing),
+    and that is how we obtain the address of \verb!sys_call_table!!
+
+  \item Well, the table is here, but we have no idea on what entry is
+    interesting for us. But there is a very useful file in kernel sources,
+    \verb!arch/x86/kernel/syscall_table_32.S!. I will provide a little
+    fragment of that file: \verbatiminput{syscall_table.S}
+
+  \item Why waiting?! Let's have some fun and modify the \verb!sys_open!!
+    First, I would like to define a function to find \verb!sys_call_table! and
+    a inline function to read a particular entry. Here they go:
+    \verbatiminput{syscall.h}
+
+  \item Now that we have all the nessesary addresses, \verb!sys_open! can be
+    ``patched''. How? I found it easier to read the disassembled listing of
+    \verb!sys_open! (again, right?) than searching through the kernel
+    source. Also the function is not so big, so you may see the complete
+    listing of it: \verbatiminput{sys_open.S} Why so tiny? Looks more like a
+    wrapper or something similar. And it is! Look at the
+    ``\verb!call 0xc10b0307!'' (\verb!0xe8! opcode, another relative
+    offset). In my system this address represents function
+    ``\verb!do_sys_call!''. Feeling the power? Oh yes.
+  \end{itemize}
+  
   
 \end{document}
