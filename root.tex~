@@ -343,7 +343,7 @@ rootkits. The functions of that ``IDS'' will be the following:
     
   \item A good technique of hiding something is by clearing the P flag
     of that ``something''. I mean, the page will look like it's not
-    present in the memory and the \#PF exception will be raised, which
+    present in the memory and the #PF exception will be raised, which
     is then caught by the handler. The handler itself can be
     malicious, permitting it to intercept things.
 
@@ -355,7 +355,7 @@ rootkits. The functions of that ``IDS'' will be the following:
     more complicated, but becoming more detectable.
 
   \item Retrieve \verb!sys_call_table!, all the system calls, the IDT
-    and the interrupt handlers (especially the \#PF handler).
+    and the interrupt handlers (especially the #PF handler).
 
   \item Clear the P flag on some ``attractive'' system structures. Why
     the P flag instead of debugging registers? Well, the debugging

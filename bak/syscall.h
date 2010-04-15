@@ -21,9 +21,7 @@ void* find_sys_call_table(void)
   return sys_call_table_p;
 }
 
-void* read_sys_call_entry(void* sys_call_table, int index)
+inline void* read_sys_call_entry(void* sys_call_table, int index)
 {
-  void* entry_p = sys_call_table + 4 * index;
-  uint32_t entry = *((uint32_t*)entry_p);
-  return (void*)entry;
+  return (sys_call_table + 4 * index);
 }

@@ -1,0 +1,5 @@
+void retrieve_regs(int32_t* array)
+{
+  asm("sgdt %0"
+      : "m"(*array));
+  

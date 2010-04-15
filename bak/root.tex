@@ -1,7 +1,6 @@
-\documentclass[12pt]{book}
-%\documentclass[12pt]{article}
+\documentclass[12pt]{article}
 % This work is about rootkits
-%\usepackage[T2A]{fontenc}
+\usepackage[T2A]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{multicol}
 \usepackage{gensymb}
@@ -20,20 +19,13 @@
 
 \hfuzz = .6pt % avoid black boxes
 
-% TODO List
-\usepackage{color}
-\usepackage{index} % use index package to create indices
-\newindex{todo}{tod}{tnd}{TODO List} % start todo list
-\newindex{fixme}{fix}{fnd}{FIXME List} % start fixme list
-\newcommand{\todo}[1]{\textcolor{blue}{TODO: #1}\index[todo]{#1}}
-\newcommand{\fixme}[1]{\textcolor{red}{FIXME: #1}\index[fixme]{#1}}
-
 \title{Kernel rootkits in Linux: low-level approach and prevention}
 \date{}
 \author{Ivan Galinskiy}
 
 \begin{document}
 \maketitle
+
 \newpage
   \emph{
   Copyright (C) 2010 Ivan Galinskiy.
@@ -77,7 +69,7 @@
       research).
   \end{enumerate}
 
-  \chapter{A brief look at DR Linux rootkit}
+  \section{A brief look at DR Linux rootkit}
   
   Well, finding this one was not a difficult task. Besides, it's one of the
   most up-to-date open-source rootkits available. Others are either very old,
@@ -101,7 +93,7 @@
   Descriptor Table to its own or either modifies the system handler (in this
   case the IDT remains untouched).
 
-  \chapter{Interception techniques}
+  \section{Interception techniques}
 
   Wait, is this the only way to control system internals? Actually, more
   methods were created through the time, but all of them are based on
@@ -209,7 +201,7 @@
       ``proof-of-concept''. But the payload will come later.
   \end{itemize}
 
-  \chapter{Designing a rootkit}
+  \section{Designing a rootkit}
   
   Now we have the most popular methods of intercepting system internals, which
   are also pretty easy to detect. Usually the check consists of retrieving the
@@ -298,79 +290,11 @@
     wrapper or something similar. And it is! Look at the
     ``\verb!call 0xc10b0307!'' (\verb!0xe8! opcode, another relative
     offset). In my system this address represents function
-    ``\verb!do_sys_open!''. Feeling the power? Oh yes.
-
-  \item So, now it's only a question of technique to hook
-    \verb!sys_open!. After that the function \verb!search!, a pointer to the
-    beggining of the address (or better said, relative offset) is
-    obtained. This offset is stored as a signed integer, after that we obtain
-    the address of the next instruction by adding 4 (4 bytes) to the
-    pointer. Then the offset is added to that pointer and that is how we
-    obtain the absolute offset of ``\verb!do_sys_open!''. Well, it's not that
-    simple. Why? The pages that contain this code are write-protected, so an
-    attempt to write there will cause an exception and nothing more (it took
-    me some time to figure it out). But there is the WP bit in CR0 register
-    which enables/disables write protection, so we can use it in the following
-    helper function:\verbatiminput{rw_protect.h}
-    Problem solved! The complete module code will look like this:
-    \verbatiminput{open_hook.c}
-
-  \item Let's now modify the hook in such a way that it will block
-    access to, for example, all the filenames ending with ``st''. It's
-    not pretty useful, but it shows some principles. But as we are
-    replacing the \verb!do_sys_open! call, we will take the
-    \verb!do_sys_open! definition in kernel sources as a base for our
-    hook. So the modified hook looks like
-    this:\verbatiminput{open_hook_inter.c} Don't pay attention to the
-    strange way of checking filename ending. The reason for this is
-    that the name is provided to \verb!open! in different ways, and
-    that function then calls \verb!getname! to determine full
-    filename, but I am not going to work with it right now, because I
-    was only showing the technique itself.
+    ``\verb!do_sys_call!''. Feeling the power? Oh yes.
   \end{itemize}
 
-\chapter{Detection}
-Now that the basic principles are known, we can finally develop an
-application that will detect hijacking attempts \emph{before} any
-damage can be done to the OS and possibly discover existing
-rootkits. The functions of that ``IDS'' will be the following:
-\begin{enumerate}
-  \item At startup, read the \verb!GDTR!, \verb!IDTR!, \verb!SYSENTER_EIP_MSR!
-    registers.
-    
-  \item Retrieve the values of debugging registers and, if
-    a ``suspicious'' value is found, do something.
-    
-  \item A good technique of hiding something is by clearing the P flag
-    of that ``something''. I mean, the page will look like it's not
-    present in the memory and the \#PF exception will be raised, which
-    is then caught by the handler. The handler itself can be
-    malicious, permitting it to intercept things.
-
-  \item Retrieve \verb!ia32_sysenter_target! and \verb!system_call! in
-    order to compare them to the version found in vmlinux.
-
-  \item Retrieve GDT. The rootkit may add descriptors with base not
-    equal to zero and use them in order to make the disassembly much
-    more complicated, but becoming more detectable.
-
-  \item Retrieve \verb!sys_call_table!, all the system calls, the IDT
-    and the interrupt handlers (especially the \#PF handler).
-
-  \item Clear the P flag on some ``attractive'' system structures. Why
-    the P flag instead of debugging registers? Well, the debugging
-    registers can be modified very easily, that's the reason. It's
-    more complicated, of course, but gives more reliability. Here I am
-    going to use a predefined function to ensure compatibility and
-    portability.
-\end{enumerate}
-Well, it's not such a large list, so let's begin.I think it might be
-better to first make the IDT comparison function:
-\verbatiminput{idt_compare.h}
-
-\printindex[todo]
-%\newpage
-%\appendix
-%\chapter{GNU Free Documentation License}
-%\input{license.tex}
+\newpage
+\appendix
+\section{GNU Free Documentation License}
+\input{license.tex}
 \end{document}
