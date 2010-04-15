@@ -361,12 +361,16 @@ rootkits. The functions of that ``IDS'' will be the following:
     the P flag instead of debugging registers? Well, the debugging
     registers can be modified very easily, that's the reason. It's
     more complicated, of course, but gives more reliability. Here I am
-    going to use a predefined function to ensure compatibility and
-    portability.
+    going to use a predefined kernel function to ensure compatibility
+    and portability.
 \end{enumerate}
 Well, it's not such a large list, so let's begin.I think it might be
-better to first make the IDT comparison function:
-\verbatiminput{idt_compare.h}
+better to first make the IDT comparison function. But there is a
+little thing about finding the end of the interrupt handler, because
+we are going to need something like a disassembler. I am not going to
+write my own disassembler engine (don't like inventing bicycles), but
+use the \verb!libdisasm!, written by mammon\_ as part of the
+\verb!bastard! disassembler. \verbatiminput{idt_compare.h}
 
 \printindex[todo]
 %\newpage
