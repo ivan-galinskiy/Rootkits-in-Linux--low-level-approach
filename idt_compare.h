@@ -1,4 +1,4 @@
-#include <libdis.h>
+#include "hde28c/hde32.c"
 
 typedef struct
 {
@@ -12,38 +12,23 @@ void get_idt_addresses(int32_t* buffer, idt_entry* idt)
   for(int i = 0; i <= 255; i++)
     {
       *(buffer + i) =
-        ((idt_entry + i)->offset_high << 16) + (idt_entry + i)->offset_low;
+        ((idt + i)->offset_high << 16) + (idt + i)->offset_low;
     }
 
   return;
 }
 
-void* get_function_end(char* beginning, uint32_t limit)
+void* get_function_end(char* beginning)
 {
-   int pos = 0;             /* current position in buffer */
-   int size;                /* size of instruction */
-   x86_insn_t insn;         /* instruction */
-
-   x86_init(opt_none, NULL, NULL);
-
-   while (pos > BUF_SIZE)
-     {
-       /* disassemble address */
-       size = x86_disasm(beginning, limit, 0, pos, &insn);
-       if ( size )
-         {
-           /* See if the instruction is 0xcf */
-           if ((*((uint8_t*)(beginning+pos)) >> 4) == 0xcf)
-             {
-               x86_cleanup();
-               return (void*)(beginning+pos);
-             }
-           else
-             pos += size;
-         }
-       else pos++;
-     }
-
-   x86_cleanup();
-   return 0;
+  hde32s instr; // Instruction structure
+  unsigned int length = 0;
+  
+  while (instr.opcode != 0xC3 || instr.opcode != 0xCB || // ret
+         instr.opcode != 0xCF) // iret
+    {
+      beginning += length;
+      length = hde32_disasm(beginning, &instr);
+    }
+  
+  return (void*)beginning;
 }

@@ -1,5 +1,5 @@
-\documentclass[12pt]{book}
-%\documentclass[12pt]{article}
+%\documentclass[12pt]{book}
+\documentclass[12pt]{article}
 % This work is about rootkits
 %\usepackage[T2A]{fontenc}
 \usepackage[utf8]{inputenc}
@@ -21,12 +21,12 @@
 \hfuzz = .6pt % avoid black boxes
 
 % TODO List
-\usepackage{color}
-\usepackage{index} % use index package to create indices
-\newindex{todo}{tod}{tnd}{TODO List} % start todo list
-\newindex{fixme}{fix}{fnd}{FIXME List} % start fixme list
-\newcommand{\todo}[1]{\textcolor{blue}{TODO: #1}\index[todo]{#1}}
-\newcommand{\fixme}[1]{\textcolor{red}{FIXME: #1}\index[fixme]{#1}}
+%\usepackage{color}
+%\usepackage{index} % use index package to create indices
+%\newindex{todo}{tod}{tnd}{TODO List} % start todo list
+%\newindex{fixme}{fix}{fnd}{FIXME List} % start fixme list
+%\newcommand{\todo}[1]{\textcolor{blue}{TODO: #1}\index[todo]{#1}}
+%\newcommand{\fixme}[1]{\textcolor{red}{FIXME: #1}\index[fixme]{#1}}
 
 \title{Kernel rootkits in Linux: low-level approach and prevention}
 \date{}
@@ -34,7 +34,6 @@
 
 \begin{document}
 \maketitle
-\newpage
   \emph{
   Copyright (C) 2010 Ivan Galinskiy.
     Permission is granted to copy, distribute and/or modify this document
@@ -43,7 +42,11 @@
     with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
     A copy of the license is included in the section entitled "GNU
     Free Documentation License".}
-  \newpage
+
+  \section{A little disclaimer}
+
+  This work is mostly the representation of the process of learning
+  system internals.
   
   \section{Kinds of rootkits}
   \subsection{Classification}
@@ -77,7 +80,7 @@
       research).
   \end{enumerate}
 
-  \chapter{A brief look at DR Linux rootkit}
+  \section{A brief look at DR Linux rootkit}
   
   Well, finding this one was not a difficult task. Besides, it's one of the
   most up-to-date open-source rootkits available. Others are either very old,
@@ -101,7 +104,7 @@
   Descriptor Table to its own or either modifies the system handler (in this
   case the IDT remains untouched).
 
-  \chapter{Interception techniques}
+  \section{Interception techniques}
 
   Wait, is this the only way to control system internals? Actually, more
   methods were created through the time, but all of them are based on
@@ -209,7 +212,7 @@
       ``proof-of-concept''. But the payload will come later.
   \end{itemize}
 
-  \chapter{Designing a rootkit}
+  \section{Designing a rootkit}
   
   Now we have the most popular methods of intercepting system internals, which
   are also pretty easy to detect. Usually the check consists of retrieving the
@@ -329,7 +332,7 @@
     was only showing the technique itself.
   \end{itemize}
 
-\chapter{Detection}
+\section{Detection}
 Now that the basic principles are known, we can finally develop an
 application that will detect hijacking attempts \emph{before} any
 damage can be done to the OS and possibly discover existing
@@ -365,16 +368,18 @@ rootkits. The functions of that ``IDS'' will be the following:
     and portability.
 \end{enumerate}
 Well, it's not such a large list, so let's begin.I think it might be
-better to first make the IDT comparison function. But there is a
-little thing about finding the end of the interrupt handler, because
-we are going to need something like a disassembler. I am not going to
-write my own disassembler engine (don't like inventing bicycles), but
-use the \verb!libdisasm!, written by mammon\_ as part of the
-\verb!bastard! disassembler. \verbatiminput{idt_compare.h}
+better to first make the IDT handlers' comparison function. But there
+is a little thing about finding the end of the interrupt handler,
+because we are going to need something like a disassembler. This time
+I am going to use a ready disassembler engine called ``hde32'',
+written by Vyacheslav Patkov. I found it simple enough for my task,
+that is the reason of my choice (others disasm engines were a little
+big). Here is how the usage will look like: \verbatiminput{idt_compare.h}
+Let's leave it for later and try to solve other requirements.
 
-\printindex[todo]
+%\printindex[todo]
 %\newpage
 %\appendix
-%\chapter{GNU Free Documentation License}
+%\section{GNU Free Documentation License}
 %\input{license.tex}
 \end{document}
