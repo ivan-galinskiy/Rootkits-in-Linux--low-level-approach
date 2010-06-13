@@ -1,0 +1,27 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include "sidt.h"
+#include "idt.h"
+
+void* old_page_fault = 0;
+
+void new_page_fault(void)
+{
+  __asm__("jmpl *%0\n\t"
+          :
+          : "m"(old_page_fault));
+}
+
+int init_module()
+{
+  idt_entry* pf_ent_p = get_idt_entry(get_idtr(), 0x0e);
+  old_page_fault = (void*)((pf_ent->offset_high << 16) + pf_ent->offset_low);
+
+  // Setting the new handler
+  pf_ent_p->offset_high = &new_page_fault >> 16;
+  pf_ent_p->offset_low = &new_page_fault & 0x0000ffff;
+
+  return 0;
+}
+
+void cleanup_module(){}

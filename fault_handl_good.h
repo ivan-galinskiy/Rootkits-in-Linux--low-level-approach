@@ -1,0 +1,131 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include "pg_flag_mod.h"
+#include "hde28c/hde28.c"
+#include "sidt.h"
+#include "idt.h"
+
+void* old_page_fault = 0;
+void* old_debug = 0;
+
+// The address to which the code tried to access
+uint32_t accessed_addr = 0;
+uint32_t old_dr0 = 0;
+
+idt_entry* pf_ent_p = 0;
+
+void new_debug(void)
+{
+  __asm__("pushad");
+  // Clear the debug status register
+  set_debugreg(0, 6);
+
+  uint32_t current_dr0;
+  get_debugreg(current_dr0, 0);
+
+  if ((current_dr0 >> 24) == 0xc1)
+    // The exception came from the kernel
+    {
+      // Now we close access to that page again
+      clear_present(virt_to_pte(accessed_addr));
+
+      // Removing the breakpoint
+      set_debugreg(0, 0);
+      __asm__("iret");
+    }
+  else
+    {
+      __asm__("popad" // Restoring the registers for normal operation
+              "jmpl *%0\n\t"
+              : // No output
+              : "m"(old_page_fault));
+    }
+}
+void new_page_fault(void)
+{
+  // Saving all the registers before modifying them.
+  __asm__("pushad");
+  
+  uint32_t eip = 0; // The pointer to the instruction.
+  uint16_t cs; // The CS register (stored in stack).
+
+  char* instruction_buf = kmalloc(8, GFP_KERNEL);
+
+  // Here we get the required data from stack (note: after the
+  // "pushad" instruction the offset in stack is 32 bytes).
+  __asm__("movl 32(%%esp), %0\n\t"
+          : "=r"(eip));
+
+  __asm__("movw 36(%%esp), %0\n\t"
+          : "=r"(cs));
+
+  // Now we retrieve the linear address to which the
+  // rootkit/kernel tried to access
+  __asm__("mov %%cr2, %0"
+          : "=m"(accessed_addr));
+
+  // And here we get the instruction itself (in two steps, copying 8
+  // bytes).
+  __asm__("movl %0:%1,     (%2)\n\t"
+          "movl %0:4(%1), 4(%2)\n\t"
+          : "=r"(instruction_buf)
+          : "r"(cs),"r"(eip));
+  
+  // The disassembly is performed here in order to see the page to
+  // which that instruction accessed
+  
+  hde32s instr_disasm;
+  hde32_disasm(instruction_buf, &instr_disasm);
+
+  // The query is from the kernel (not kernel modules),
+  // everything OK.
+  // Note: here I assume that the kernel itself doesn't
+  // cause page faults.
+  // TODO: change 0x1 by something more universal.
+  if ((eip >> 24) == 0xc1)
+    {
+      // Here we set up the debugging register
+      // to stop at the next instruction
+      // in order to clear the P flag again
+      // and save the previous value of DR0.
+      get_debugreg(old_dr0, 0);
+      set_debugreg(eip + instr_disasm.len, 0);
+      
+      // Now we open access to the requested page
+      set_present(virt_to_pte(accessed_addr));
+      
+      // Here we return from the exception handler,
+      // the command executes, the breakpoint is activated,
+      // the P flag is cleared again
+      __asm__("popad"
+              "iret");
+      
+      __asm__("popad" // Restoring the registers for normal operation
+              "jmpl *%0\n\t"
+              : // No output
+              : "m"(old_page_fault));
+    }
+}
+
+int init_module()
+{
+  pf_ent_p = get_idt_entry(get_idtr(), 0x0e);
+  old_page_fault = (void*)((pf_ent_p->offset_high << 16) +
+                           pf_ent_p->offset_low);
+
+  // Setting the new handler
+  modify_idt_entry_addr(pf_ent_p, &new_page_fault);
+
+  // Here we'll clear the P flag on some pages
+  // TODO
+
+  return 0;
+}
+
+void cleanup_module()
+{
+  // Here we'll set the P flag on some pages
+  // TODO
+  modify_idt_entry_addr(pf_ent_p, &old_page_fault);
+}
+

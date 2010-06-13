@@ -1,0 +1,22 @@
+\BOOKMARK [1][]{section.1}{Kinds of rootkits}{}
+\BOOKMARK [2][]{subsection.1.1}{Classification}{section.1}
+\BOOKMARK [2][]{subsection.1.2}{Basic principles of work}{section.1}
+\BOOKMARK [1][]{section.2}{A brief look at DR Linux rootkit}{}
+\BOOKMARK [1][]{section.3}{Interception techniques}{}
+\BOOKMARK [2][]{subsection.3.1}{Modifying IDT}{section.3}
+\BOOKMARK [2][]{subsection.3.2}{SYSENTER/SYSCALL interception}{section.3}
+\BOOKMARK [1][]{section.4}{Designing a rootkit}{}
+\BOOKMARK [2][]{subsection.4.1}{Modifying the original debug handler}{section.4}
+\BOOKMARK [1][]{appendix.A}{GNU Free Documentation License}{}
+\BOOKMARK [1][]{section*.1}{1. APPLICABILITY AND DEFINITIONS}{}
+\BOOKMARK [1][]{section*.2}{2. VERBATIM COPYING}{}
+\BOOKMARK [1][]{section*.3}{3. COPYING IN QUANTITY}{}
+\BOOKMARK [1][]{section*.4}{4. MODIFICATIONS}{}
+\BOOKMARK [1][]{section*.5}{5. COMBINING DOCUMENTS}{}
+\BOOKMARK [1][]{section*.6}{6. COLLECTIONS OF DOCUMENTS}{}
+\BOOKMARK [1][]{section*.7}{7. AGGREGATION WITH INDEPENDENT WORKS}{}
+\BOOKMARK [1][]{section*.8}{8. TRANSLATION}{}
+\BOOKMARK [1][]{section*.9}{9. TERMINATION}{}
+\BOOKMARK [1][]{section*.10}{10. FUTURE REVISIONS OF THIS LICENSE}{}
+\BOOKMARK [1][]{section*.11}{11. RELICENSING}{}
+\BOOKMARK [1][]{section*.12}{ADDENDUM: How to use this License for your documents}{}

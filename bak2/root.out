@@ -1,0 +1,11 @@
+\BOOKMARK [1][]{section.1}{A little disclaimer}{}% 1
+\BOOKMARK [1][]{section.2}{Kinds of rootkits}{}% 2
+\BOOKMARK [2][]{subsection.2.1}{Classification}{section.2}% 3
+\BOOKMARK [2][]{subsection.2.2}{Basic principles of work}{section.2}% 4
+\BOOKMARK [1][]{section.3}{A brief look at DR Linux rootkit}{}% 5
+\BOOKMARK [1][]{section.4}{Interception techniques}{}% 6
+\BOOKMARK [2][]{subsection.4.1}{Modifying IDT}{section.4}% 7
+\BOOKMARK [2][]{subsection.4.2}{SYSENTER/SYSCALL interception}{section.4}% 8
+\BOOKMARK [1][]{section.5}{Designing a rootkit}{}% 9
+\BOOKMARK [2][]{subsection.5.1}{Modifying the original debug handler}{section.5}% 10
+\BOOKMARK [1][]{section.6}{Detection}{}% 11

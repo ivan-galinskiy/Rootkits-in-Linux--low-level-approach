@@ -191,7 +191,7 @@
       mistakes: the address is stored with low-order bytes first! We
       can define a function to get the register contents in
       easily-readable form (file \verb!sidt.h!):
-      \lstinputlisting{sidt.h}
+      \verbatiminput{sidt.h}
 
     \item Half of the job is done now. However, we still need to get a
       particular entry in the IDT (to store the original interrupt
@@ -201,7 +201,7 @@
       in the entry! The first 16 bits begin at bit 0 of the IDT entry,
       and the last 16 are at the end of the entry. Tricky, right? The
       following code can handle with this (file \verb!idt.h!):
-      \lstinputlisting{idt.h}
+      \verbatiminput{idt.h}
 
     \item Very good! Now that we have the entries, many things can be
       done. But let's stop with IDT hooking and continue to the next method.
@@ -237,7 +237,7 @@
       description, so here is a minimal sample kernel module for this
       task (the includes were (duh) excluded). It's a kernel module
       because \verb!WRMSR!  can only be performed at ring 0 (file
-      \verb!msr.h!): \lstinputlisting{msr.h}
+      \verb!msr.h!): \verbatiminput{msr.h}
       
     \item Obviously, this module doesn't do anything special, it's more like a
       ``proof-of-concept''. But the payload will come later.
@@ -266,7 +266,7 @@
       this is interesting! Let's see what this function does in kernel
       sources. Actually, the debug entry is located (kernel 2.6.33) in
       the \verb!arch/x86/kernel/entry_32.S! (was tricky to find). And
-      this is the code.  \lstinputlisting{deb_entry.S}
+      this is the code.  \verbatiminput{deb_entry.S}
 
    Good! The ``\verb!call do_debug!'' seems to be the call to the
    ``official'' debug handler. And if we change it with our own handler,
@@ -277,7 +277,7 @@
    \item Yes, in theory it's simple, but the practice is a bit more
      complicated. It should be good to see part of disassembled
      listing of ``\verb!debug!'':
-     \lstinputlisting{debug.s} Interesting, right? But here is a
+     \verbatiminput{debug.s} Interesting, right? But here is a
      problem. As the hex code of ``\verb!call!'' in this case is
      \verb!0xe8!, it's a relative near call. Obviously, it's not
      acceptable for the hooking function (the addresses will be
@@ -293,7 +293,7 @@
      (file \verb!search.h!.  \emph{Important: when we get a value from
        memory and use it as an integer, it's inverted (because of the
        endianness). So if we need to find code, we need to invert the
-       pattern again}: \lstinputlisting{search.h} \emph{WARNING: It's
+       pattern again}: \verbatiminput{search.h} \emph{WARNING: It's
        not the best or the fastest code, but considering that it will
        usually be called only once, it's not critical}
   \end{enumerate}
@@ -309,7 +309,7 @@
     calls are located in that table), is
     \verb!call *sys_call_table(,%eax,4)!. This is the disassembled
     fragment of \verb!ia32_sysenter_target!:
-    \lstinputlisting{syscall_dis.S} A negative value?  It cannot be,
+    \verbatiminput{syscall_dis.S} A negative value?  It cannot be,
     since the opcode \verb!0xff! always means an absolute offset. It's
     a mistake in \verb!objdump!, so I sent a bug report. However, it's
     not that critical, and we may continue.
@@ -322,19 +322,19 @@
   \item Well, the table is here, but we have no idea on what entry is
     interesting for us. But there is a very useful file in kernel
     sources, \verb!arch/x86/kernel/syscall_table_32.S!. I will provide
-    a little fragment of that file: \lstinputlisting{syscall_table.S}
+    a little fragment of that file: \verbatiminput{syscall_table.S}
 
   \item Why waiting?! Let's have some fun and modify the
     \verb!sys_open!!  First, I would like to define a function to find
     \verb!sys_call_table! and a inline function to read a particular
-    entry. Here they go (file \verb!syscall.h!): \lstinputlisting{syscall.h}
+    entry. Here they go (file \verb!syscall.h!): \verbatiminput{syscall.h}
 
   \item Now that we have all the nessesary addresses, \verb!sys_open!
     can be ``patched''. How? I found it easier to read the
     disassembled listing of \verb!sys_open! (again, right?) than
     searching through the kernel source. Also the function is not so
     big, so you may see the complete listing of it:
-    \lstinputlisting{sys_open.S} Why so tiny? Looks more like a wrapper
+    \verbatiminput{sys_open.S} Why so tiny? Looks more like a wrapper
     or something similar. And it is! Look at the
     ``\verb!call 0xc10b0307!'' (\verb!0xe8! opcode, another relative
     offset). In my system this address represents function
@@ -353,7 +353,7 @@
     time to figure it out). But there is the WP bit in CR0 register
     which enables/disables write protection, so we can use it in the
     following helper function (file
-    \verb!rw_protect.h!):\lstinputlisting{rw_protect.h} Problem solved! The complete module code will look like this (file \verb!open_hook.c!): \lstinputlisting{open_hook.c}
+    \verb!rw_protect.h!):\verbatiminput{rw_protect.h} Problem solved! The complete module code will look like this (file \verb!open_hook.c!): \verbatiminput{open_hook.c}
 
   \item Let's now modify the hook in such a way that it will block
     access to, for example, all the filenames ending with ``st''. It's
@@ -361,7 +361,7 @@
     replacing the \verb!do_sys_open! call, we will take the
     \verb!do_sys_open! definition in kernel sources as a base for our
     hook. So the modified hook looks like this (file
-    \verb!open_hook_inter.c!):\lstinputlisting{open_hook_inter.c} Don't pay
+    \verb!open_hook_inter.c!):\verbatiminput{open_hook_inter.c} Don't pay
     attention to the strange way of checking filename ending. The
     reason for this is that the name is provided to \verb!open! in
     different ways, and that function then calls \verb!getname! to
@@ -413,7 +413,7 @@ I am going to use a disassembler engine called ``hde32'', written by
 Vyacheslav Patkov. I found it simple enough for my task, that is the
 reason of my choice (others disasm engines were a little big). Here is
 how the usage will look like (file \verb!idt_compare.h!):
-\lstinputlisting{idt_compare.h} Let's leave it for later and try to
+\verbatiminput{idt_compare.h} Let's leave it for later and try to
 solve a more interesting problem: the ``P-flag interception''. Well,
 there are some very useful functions defined in
 \verb!arch/x86/include/asm/pgtable.h! file: \verb!pte_set_flags! and
@@ -424,12 +424,12 @@ calculate the position of the entry in the global dir, then in the
 upper dir etc. until we get to the page table. However, this is not
 difficult at all (thanks developers for the macros and functions!). A
 header file containing the required functions will be like that (file
-\verb!pg_flag_mod.h!): \lstinputlisting{pg_flag_mod.h} Of course, just
+\verb!pg_flag_mod.h!): \verbatiminput{pg_flag_mod.h} Of course, just
 altering the page table is not enough, the whole point here is about
 intercepting things, so we will need to put our own handler to the
 page fault exception. The code that puts an ``empty'' handler that
 does nothing except invoking the original one(file
-\verb!fault_handl_emp.c!): \lstinputlisting{fault_handl_emp.c} Very
+\verb!fault_handl_emp.c!): \verbatiminput{fault_handl_emp.c} Very
 good, but we still need to know \emph{where} did the \verb!#PF!
 exception occur and \emph{who} called it. The EIP and CS registers
 hold the address of the instruction where the exception occured (but
@@ -444,25 +444,18 @@ there). The sequence of actions in our case will be the following:
     and get that instruction.
     
   \item See the address that instruction was accessing to, using
-    the \verb!CR2! register.
+    disassembler (here is where we detect malicious intentions).
 
   \item If the address is the one we are observing, check the address
-    of that instruction and see if that instruction (I mean, the
-    \emph{function} to which that instruction belongs) is allowed to
-    access that page.
-
-  \item If it does, set the P flag and set a breakpoint to the next
-    instruction.
-
-  \item Catch the \verb!0x01! (debug) exception and clear the P flag
-    again.
+    of that instruction and see if it belongs to the range of
+    permitted values.
 \end{enumerate}
 
 So that is how we detect \emph{who} accesses critical system
 structures and have the possibility to stop these intentions if they
-are not permitted.  This pretty big piece of code should do the trick:
+are not permitted.  This code should do the trick:
+%\verbatiminput{fault_handl_good.h}
 \lstinputlisting{fault_handl_good.h}
-
 
 %\printindex[todo]
 %\newpage

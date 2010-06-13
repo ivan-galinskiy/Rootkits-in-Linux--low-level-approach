@@ -13,11 +13,3 @@ idt_entry* get_idt_entry(dtr idtr, uint index)
   entry += index;
   return entry;
 }
-
-inline void modify_idt_entry_addr(idt_entry* entry, new_addr)
-{
-  __asm__("cli\n\t");
-  entry->offset_high = (uint32_t)new_addr >> 16;
-  entry->offset_low = (uint32_t)new_addr & 0x0000ffff;
-  __asm__("sti\n\t");
-}
